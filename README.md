@@ -1,0 +1,2 @@
+# RabbitNG
+A poker RNG
