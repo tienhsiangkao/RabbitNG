@@ -1,0 +1,47 @@
+{
+  "name": "poker-rng-overlays",
+  "version": "1.0.0",
+  "description": "Per-table RNG overlays for poker (Windows)",
+  "author": "You",
+  "main": "main.js",
+  "type": "module",
+  "scripts": {
+    "start": "electron .",
+    "dist": "electron-builder --win portable --publish=never"
+  },
+  "build": {
+    "appId": "com.yourname.pokerrng",
+    "productName": "Poker RNG",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "**/*",
+      "!dist",
+      "!node_modules/.cache"
+    ],
+    "extraResources": [
+      "assets/**"
+    ],
+    "asar": true,
+
+    "copyright": "Copyright © 2025 You",
+
+    "win": {
+      "target": ["portable"],
+      "icon": "assets/icons/app.ico",
+      "publisherName": ["You"]
+    },
+
+    "portable": {
+      "artifactName": "PokerRNG-${version}-portable.exe"
+    }
+  },
+  "dependencies": {
+    "node-window-manager": "^2.2.4"
+  },
+  "devDependencies": {
+    "electron": "^36.0.0",
+    "electron-builder": "^24.13.3"
+  }
+}

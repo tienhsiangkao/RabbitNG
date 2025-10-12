@@ -1,0 +1,40 @@
+{
+  "scanMs": 300,
+  "followActiveOnly": false,
+  "opacity": 1.0,
+  "clickThrough": false,
+  "strictBeginsOnly": true,
+  "autoRollMs": 10000,
+
+  "overlays": {
+    "basePctSmall": 0.08,
+    "basePctLarge": 0.12,
+    "minW": 64,
+    "minH": 48,
+    "anchor": { "xPct": 0.30, "yPct": 0.75 },
+    "position": { "mode": "edge", "edge": "top-right", "padX": 24, "padY": 24 },
+    "rememberDefaultOnDrag": true
+  },
+
+  "excludeTitlePrefixes": [
+    "HH","Hand History","History","Lobby","Cashier","Settings","Options","Replayer","Replay","Observer"
+  ],
+
+  "matchers": [
+    {
+      "name": "GGPoker",
+      "titlePrefixes": ["Rush", "NLH"],
+      "classIncludes": ["GGPoker", "GGNetwork", "Chrome_WidgetWin_1"]
+    },
+    {
+      "name": "PokerStars",
+      "titlePrefixes": ["Table"],
+      "classIncludes": ["PokerStarsTableFrameClass"]
+    },
+    {
+      "name": "GenericHoldem",
+      "titlePrefixes": ["Hold'em Table"],
+      "classIncludes": []
+    }
+  ]
+}
