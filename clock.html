@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Clock</title>
+  <style>
+    @font-face {
+      font-family: 'Digital7';
+      src: url('./assets/fonts/digital-7.ttf') format('truetype');
+      font-display: swap;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background: transparent;
+      -webkit-user-select: none;
+      user-select: none;
+      font-family: 'Digital7', 'Digital-7', monospace;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      -webkit-app-region: drag;
+    }
+    .clock-container {
+      padding: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 2px;
+      -webkit-app-region: drag;
+    }
+    .clock {
+      font-size: 1em;
+      letter-spacing: 0.02em;
+      line-height: 1.1;
+      white-space: nowrap;
+      text-align: center;
+      -webkit-app-region: no-drag;
+      color: #ffffff;
+      font-weight: normal;
+      text-shadow: 0 0 4px rgba(0, 0, 0, 0.8), 0 0 8px rgba(0, 0, 0, 0.6);
+      min-width: 8ch;
+    }
+    .clock-utc {
+      font-size: 0.7em;
+      letter-spacing: 0.02em;
+      line-height: 1.1;
+      white-space: nowrap;
+      text-align: center;
+      -webkit-app-region: no-drag;
+      color: #cccccc;
+      font-weight: normal;
+      text-shadow: 0 0 4px rgba(0, 0, 0, 0.8), 0 0 8px rgba(0, 0, 0, 0.6);
+      min-width: 8ch;
+    }
+  </style>
+</head>
+<body oncontextmenu="return false">
+  <div class="clock-container">
+    <div class="clock" id="clock-local">00:00:00</div>
+    <div class="clock-utc" id="clock-pst">00:00:00</div>
+  </div>
+  <script>
+    const pacificFormatter = new Intl.DateTimeFormat('en-US', {
+      timeZone: 'America/Los_Angeles',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+      hour12: false
+    });
+
+    function formatLocal(date) {
+      const hours = String(date.getHours()).padStart(2, '0');
+      const minutes = String(date.getMinutes()).padStart(2, '0');
+      const seconds = String(date.getSeconds()).padStart(2, '0');
+      return `${hours}:${minutes}:${seconds}`;
+    }
+
+    function updateClock() {
+      const now = new Date();
+      document.getElementById('clock-local').textContent = formatLocal(now);
+      // Pacific formatter automatically handles DST transitions
+      document.getElementById('clock-pst').textContent = pacificFormatter.format(now);
+    }
+    
+    updateClock();
+    setInterval(updateClock, 1000);
+  </script>
+</body>
+</html>

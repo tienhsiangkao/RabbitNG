@@ -1,0 +1,4 @@
+node_modules
+dist/
+!dist/builder-debug.yml
+!dist/builder-effective-config.yaml

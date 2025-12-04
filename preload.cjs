@@ -14,6 +14,6 @@ const { contextBridge, ipcRenderer } = require("electron");
 contextBridge.exposeInMainWorld("rng", {
   onTableSize: (cb) => ipcRenderer.on("table-size", (_e, d) => cb?.(d)),
   onRollNow:   (cb) => ipcRenderer.on("roll-now",   () => cb?.()),
-  // called when user finishes dragging overlay
-  dragEnded:   ()   => ipcRenderer.send("drag-ended")
+  onSetAutoRollInterval: (cb) => ipcRenderer.on("set-auto-roll-interval", (_e, d) => cb?.(d)),
+  setInterval: (seconds) => ipcRenderer.send("set-auto-roll-interval", seconds)
 });

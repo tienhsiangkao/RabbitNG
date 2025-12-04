@@ -17,8 +17,6 @@ win:
   target:
     - portable
   icon: assets/icons/app.ico
-  publisherName:
-    - You
 portable:
   artifactName: PokerRNG-${version}-portable.exe
-electronVersion: 36.9.2
+electronVersion: 39.0.0

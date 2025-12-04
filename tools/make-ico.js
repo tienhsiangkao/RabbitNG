@@ -1,6 +1,6 @@
 // tools/make-ico.js
-import fs from "fs";
-import pngToIco from "png-to-ico";
+const fs = require("fs");
+const pngToIco = require("png-to-ico");
 
 const SRC = "assets/icons/app.png";   // your square PNG (e.g., 512x512)
 const OUT = "assets/icons/app.ico";

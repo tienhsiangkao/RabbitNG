@@ -1,0 +1,198 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Poker RNG Settings</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      font-family: "Segoe UI", Tahoma, sans-serif;
+    }
+    body {
+      margin: 0;
+      padding: 18px;
+      background: linear-gradient(160deg, rgba(15,18,30,0.92), rgba(30,34,48,0.95));
+      color: #f5f6fa;
+    }
+    .panel {
+      border-radius: 14px;
+      padding: 18px;
+      background: rgba(255,255,255,0.04);
+      box-shadow: 0 18px 30px rgba(0,0,0,0.35);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(255,255,255,0.08);
+    }
+    h1 {
+      margin: 0 0 16px;
+      font-size: 20px;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      color: #8ab4ff;
+    }
+    .section {
+      margin-bottom: 18px;
+      padding-bottom: 14px;
+      border-bottom: 1px solid rgba(255,255,255,0.08);
+    }
+    .section:last-of-type {
+      border-bottom: none;
+      margin-bottom: 0;
+      padding-bottom: 0;
+    }
+    .row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin: 10px 0;
+    }
+    .row label {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      width: 100%;
+      cursor: pointer;
+    }
+    .row .text {
+      margin-right: 12px;
+    }
+    .title {
+      font-size: 15px;
+      font-weight: 600;
+    }
+    .subtitle {
+      font-size: 12px;
+      opacity: 0.7;
+    }
+    input[type="checkbox"] {
+      width: 18px;
+      height: 18px;
+      accent-color: #7aa2ff;
+    }
+    input[type="number"], input[type="range"] {
+      width: 100%;
+      box-sizing: border-box;
+      border-radius: 6px;
+      border: 1px solid rgba(255,255,255,0.12);
+      background: rgba(255,255,255,0.06);
+      color: inherit;
+      padding: 6px 8px;
+      font-size: 14px;
+    }
+    input[type="range"] {
+      padding: 0;
+    }
+    .range-row {
+      margin-top: 8px;
+    }
+    .range-label {
+      display: flex;
+      justify-content: space-between;
+      font-size: 13px;
+      opacity: 0.8;
+      margin-bottom: 6px;
+    }
+    .actions {
+      text-align: right;
+      margin-top: 18px;
+    }
+    .btn {
+      border: none;
+      background: #7aa2ff;
+      color: #10121c;
+      padding: 8px 18px;
+      border-radius: 8px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .btn:hover {
+      background: #92b7ff;
+    }
+  </style>
+</head>
+<body>
+  <div class="panel">
+    <h1>Settings</h1>
+
+    <div class="section">
+      <div class="row">
+        <label>
+          <div class="text">
+            <div class="title">Quiet mode</div>
+            <div class="subtitle">Reduce console output/noise</div>
+          </div>
+          <input type="checkbox" id="quietMode" />
+        </label>
+      </div>
+      <div class="row">
+        <label>
+          <div class="text">
+            <div class="title">Start with Windows</div>
+            <div class="subtitle">Launch Poker RNG when you log in</div>
+          </div>
+          <input type="checkbox" id="autoStart" />
+        </label>
+      </div>
+      <div class="row">
+        <label>
+          <div class="text">
+            <div class="title">Show only active table</div>
+            <div class="subtitle">Hide overlays on background tables</div>
+          </div>
+          <input type="checkbox" id="activeOnly" />
+        </label>
+      </div>
+      <div class="row">
+        <label>
+          <div class="text">
+            <div class="title">Show stakes overlay</div>
+            <div class="subtitle">Display stakes badge on each table</div>
+          </div>
+          <input type="checkbox" id="stakesOverlay" />
+        </label>
+      </div>
+      <div class="row">
+        <label>
+          <div class="text">
+            <div class="title">Show clock overlay</div>
+            <div class="subtitle">Display local/UTC clock on each table</div>
+          </div>
+          <input type="checkbox" id="clockOverlay" />
+        </label>
+      </div>
+      <div class="row">
+        <label>
+          <div class="text">
+            <div class="title">Turn recognition</div>
+            <div class="subtitle">Use color samples to gate auto-roll</div>
+          </div>
+          <input type="checkbox" id="turnRecognition" />
+        </label>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="range-label">
+        <span>Scan interval</span>
+        <span id="scanValue">300 ms</span>
+      </div>
+      <input type="number" id="scanMs" min="120" max="2000" step="20" />
+    </div>
+
+    <div class="section">
+      <div class="range-label">
+        <span>Auto-roll interval</span>
+        <span id="autoRollLabel">Turn-based</span>
+      </div>
+      <input type="range" id="autoRollRange" min="0" max="60" step="1" />
+      <div class="subtitle range-row">0 disables interval mode (turn-based only)</div>
+    </div>
+
+    <div class="actions">
+      <button class="btn" id="closeBtn">Close</button>
+    </div>
+  </div>
+
+  <script type="module" src="./settings.js"></script>
+</body>
+</html>

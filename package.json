@@ -6,8 +6,9 @@
   "main": "main.js",
   "type": "module",
   "scripts": {
-    "start": "electron .",
-    "dist": "electron-builder --win portable --publish=never"
+    "start": "set \"ELECTRON_RUN_AS_NODE=\" && electron .",
+    "dist": "electron-builder --win portable --publish=never",
+    "test": "node --test"
   },
   "build": {
     "appId": "com.yourname.pokerrng",
@@ -29,8 +30,7 @@
 
     "win": {
       "target": ["portable"],
-      "icon": "assets/icons/app.ico",
-      "publisherName": ["You"]
+      "icon": "assets/icons/app.ico"
     },
 
     "portable": {
@@ -38,7 +38,9 @@
     }
   },
   "dependencies": {
-    "node-window-manager": "^2.2.4"
+    "jimp": "^0.22.10",
+    "node-window-manager": "^2.2.4",
+    "screenshot-desktop": "^1.15.0"
   },
   "devDependencies": {
     "electron": "^36.0.0",
