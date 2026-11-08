@@ -2,15 +2,17 @@
 
 // ---------- Secure RNG (bias-free) ----------
 function secureIntInclusive(maxInclusive) {
-  const max = Number(maxInclusive) >>> 0;
-  const range = (max + 1) >>> 0;
-  const maxUint32 = 0xFFFFFFFF;
-  const limit = (Math.floor((maxUint32 + 1) / range) * range - 1) >>> 0;
+  const max = Number(maxInclusive);
+  if (!Number.isInteger(max) || max < 0 || max > 0xFFFFFFFF) {
+    throw new RangeError("Expected an unsigned 32-bit integer maximum");
+  }
+  const range = max + 1;
+  const limit = Math.floor(0x100000000 / range) * range;
   const buf = new Uint32Array(1);
   while (true) {
     crypto.getRandomValues(buf);
     const x = buf[0] >>> 0;
-    if (x <= limit) return (x % range) >>> 0;
+    if (x < limit) return x % range;
   }
 }
 
@@ -25,12 +27,18 @@ function secureIntBetween(min, max) {
 // ---------- DOM ----------
 const num = document.getElementById("num");
 const hotspot = document.getElementById("hotspot");
+const debugLog = (...args) => {
+  if (window.rngDebug === true) {
+    console.log(...args);
+  }
+};
 
 // ---------- Animation state ----------
 let currentValue = 0;
+let latestRollId = 0;
+let pendingDisplay = null;
 let rollingTicker = null;
 let rollingTimeout = null;
-let isRolling = false;
 
 // ---------- UI helpers ----------
 function renderDigits(value, applyStyle = true) {
@@ -44,8 +52,7 @@ function renderDigits(value, applyStyle = true) {
   num.children[1].textContent = String(ones);
 
   if (applyStyle) {
-    const t = v / 99;
-    const hue = 0 + t * 130;
+    const hue = (v / 99) * 130;
     num.style.color = `hsl(${hue.toFixed(1)} 88% 62%)`;
   }
   return v;
@@ -54,8 +61,7 @@ function renderDigits(value, applyStyle = true) {
 function setNumber(n) {
   const v = renderDigits(n, true);
   currentValue = v;
-
-  if (isRolling) return;
+  window.rng?.reportValue?.(v);
 
   try {
     num.animate(
@@ -69,36 +75,34 @@ function setNumber(n) {
   } catch {}
 }
 
-function animateRollTo(target) {
-  if (isRolling) {
-    clearInterval(rollingTicker);
-    clearTimeout(rollingTimeout);
-    rollingTicker = null;
-    rollingTimeout = null;
-    num.classList.remove("rolling");
-    isRolling = false;
-    renderDigits(currentValue, true);
-  }
+function animateRollTo(target, rollId = null) {
+  pendingDisplay = { value: target, rollId };
+  // Coalesce rapid input into the current animation without postponing its
+  // deadline forever. The latest authoritative target is always committed.
+  if (rollingTimeout !== null) return;
 
-  isRolling = true;
   num.classList.add("rolling");
-
-  const jitter = () => {
-    const temp = secureIntBetween(0, 99);
-    renderDigits(temp, false);
+  const renderJitter = () => {
+    let temporaryValue = secureIntBetween(0, 99);
+    if (temporaryValue === currentValue || temporaryValue === pendingDisplay.value) {
+      temporaryValue = (temporaryValue + 1) % 100;
+    }
+    renderDigits(temporaryValue, true);
   };
 
-  jitter();
-  rollingTicker = setInterval(jitter, 32);
-
+  renderJitter();
+  rollingTicker = setInterval(renderJitter, 45);
   rollingTimeout = setTimeout(() => {
+    const { value: finalValue, rollId: committedRollId } = pendingDisplay;
+    pendingDisplay = null;
     clearInterval(rollingTicker);
     rollingTicker = null;
-    isRolling = false;
-    num.classList.remove("rolling");
-    setNumber(target);
     rollingTimeout = null;
-  }, 520);
+    num.classList.remove("rolling");
+    renderDigits(finalValue, true);
+    currentValue = finalValue;
+    window.rng?.reportValue?.(finalValue, committedRollId);
+  }, 420);
 }
 
 function autosize() {
@@ -110,91 +114,59 @@ function autosize() {
   const tableWidth = window.tableSize?.width || 1000;
   const tableHeight = window.tableSize?.height || 700;
 
-  console.log(
+  debugLog(
     `[DEBUG] autosize called - Table size: ${tableWidth}x${tableHeight}, Overlay: ${w}x${h}`
   );
-  console.log(`[DEBUG] window.tableSize:`, window.tableSize);
+  debugLog(`[DEBUG] window.tableSize:`, window.tableSize);
 
-  // Base font size as percentage of table diagonal - very large adaptive scaling
-  const tableDiagonal = Math.sqrt(tableWidth * tableWidth + tableHeight * tableHeight);
-  const baseFontSize = tableDiagonal * 0.150; // 15% of table diagonal
+  // The main process scales the overlay with the table; fit the digits inside
+  // the resulting card so resizing never clips or leaves a fixed-size font.
+  const fsFromOverlayHeight = Math.max(12, Math.floor(h * .92));
+  const fsFromOverlayWidth = Math.max(12, Math.floor(w / 1.1));
 
-  console.log(
-    `[DEBUG] Table diagonal: ${tableDiagonal.toFixed(2)}, Base font size: ${baseFontSize.toFixed(
-      2
-    )}`
+  debugLog(
+    `[DEBUG] Font calculations - Height: ${fsFromOverlayHeight}, Width: ${fsFromOverlayWidth}`
   );
 
-  // Calculate font size from table size (primary) and overlay constraints (secondary)
-  const fsFromTable = Math.max(28, Math.floor(baseFontSize));
-  const fsFromOverlayHeight = Math.max(28, Math.floor(h * 1.0)); // Generous height constraint
-  const fsFromOverlayWidth = Math.max(28, Math.floor(w / 0.8)); // Generous width constraint
+  const fs = Math.min(fsFromOverlayHeight, fsFromOverlayWidth);
 
-  console.log(
-    `[DEBUG] Font calculations - Table: ${fsFromTable}, Height: ${fsFromOverlayHeight}, Width: ${fsFromOverlayWidth}`
-  );
-
-  // Use table-based size as primary, but ensure it doesn't exceed overlay bounds
-  const fs = Math.min(fsFromTable, fsFromOverlayHeight, fsFromOverlayWidth);
-
-  console.log(`[DEBUG] Final font size: ${fs}px`);
+  debugLog(`[DEBUG] Final font size: ${fs}px`);
   num.style.fontSize = `${fs}px`;
 
-  console.log(
-    `[font] Table: ${tableWidth}x${tableHeight}, Overlay: ${w}x${h}, Font: ${fs}px (from table: ${fsFromTable}, overlay: ${fsFromOverlayHeight}/${fsFromOverlayWidth})`
+  debugLog(
+    `[font] Table: ${tableWidth}x${tableHeight}, Overlay: ${w}x${h}, Font: ${fs}px (from overlay: ${fsFromOverlayHeight}/${fsFromOverlayWidth})`
   );
 }
 
-function roll() {
-  const target = secureIntBetween(0, 99);
-  animateRollTo(target);
+function roll(reason = "manual") {
+  if (window.rng?.requestRoll) {
+    window.rng.requestRoll(reason);
+  } else {
+    animateRollTo(secureIntBetween(0, 99));
+  }
 }
 
 // ---------- Click (on hotspot only) ----------
-let downPos = null;
-let downAt = 0;
-const DRAG_PX = 4;
-const CLICK_MS = 350;
-
-hotspot.addEventListener(
-  "mousedown",
-  (e) => {
-    downPos = { x: e.screenX, y: e.screenY };
-    downAt = performance.now();
-  },
-  { passive: true }
-);
-
-hotspot.addEventListener("mouseup", (e) => {
-  if (e.button !== 0) return; // only treat left-click as click
-  if (!downPos) return;
-  const dx = Math.abs(e.screenX - downPos.x);
-  const dy = Math.abs(e.screenY - downPos.y);
-  const dt = performance.now() - downAt;
-  downPos = null;
-  const isClick = dx <= DRAG_PX && dy <= DRAG_PX && dt <= CLICK_MS;
-  if (isClick) {
-    roll();
-    if (AUTO_MS > 0) startAutoRoll(); // Reset timer only if interval mode is enabled
-  }
+hotspot.addEventListener("click", () => {
+  roll();
+  if (AUTO_MS > 0) startAutoRoll();
 });
 
-document.addEventListener("contextmenu", (e) => {
-  // Right-click anywhere on the overlay triggers a roll
+hotspot.addEventListener("contextmenu", (e) => {
   e.preventDefault();
   roll();
   if (AUTO_MS > 0) startAutoRoll(); // Reset timer only if interval mode is enabled
-}, { capture: true });
+});
 
 // ---------- IPC hooks (optional) ----------
 if (window.rng?.onTableSize) {
   window.rng.onTableSize((tableSize) => {
-    console.log(`[DEBUG] Received table size via IPC:`, tableSize);
+    debugLog(`[DEBUG] Received table size via IPC:`, tableSize);
     window.tableSize = tableSize;
     autosize();
   });
 } else {
-  console.log(`[DEBUG] window.rng.onTableSize not available, using fallback`);
+  debugLog(`[DEBUG] window.rng.onTableSize not available, using fallback`);
 }
 
 // ---------- Resize observer ----------
@@ -207,8 +179,8 @@ let AUTO_MS = 0; // Disabled by default; main process can enable via IPC
 function startAutoRoll() {
   stopAutoRoll();
   if (AUTO_MS > 0) {
-    autoTimer = setInterval(roll, AUTO_MS);
-    console.log(`[autoroll] Started auto-roll every ${AUTO_MS}ms`);
+    autoTimer = setInterval(() => roll("interval"), AUTO_MS);
+    debugLog(`[autoroll] Started auto-roll every ${AUTO_MS}ms`);
   }
 }
 
@@ -216,14 +188,17 @@ function stopAutoRoll() {
   if (autoTimer) {
     clearInterval(autoTimer);
     autoTimer = null;
-    console.log(`[autoroll] Stopped auto-roll`);
+    debugLog(`[autoroll] Stopped auto-roll`);
   }
 }
 
 if (window.rng?.onRollNow) {
-  window.rng.onRollNow(() => {
-    console.log(`[autoroll] Manual roll triggered via IPC`);
-    roll();
+  window.rng.onRollNow((target) => {
+    debugLog(`[autoroll] Manual roll triggered via IPC`);
+    if (!target || !Number.isInteger(target.value) || target.value < 0 || target.value > 99 ||
+        !Number.isSafeInteger(target.rollId) || target.rollId <= latestRollId) return;
+    latestRollId = target.rollId;
+    animateRollTo(target.value, target.rollId);
     if (AUTO_MS > 0) startAutoRoll(); // Reset timer only if interval mode is enabled
   });
 }
@@ -233,19 +208,24 @@ if (window.rng?.onSetAutoRollInterval) {
   window.rng.onSetAutoRollInterval((intervalMs) => {
     AUTO_MS = Number(intervalMs) || 0;
     if (AUTO_MS > 0) {
-      console.log(`[autoroll] Interval updated to ${AUTO_MS}ms`);
+      debugLog(`[autoroll] Interval updated to ${AUTO_MS}ms`);
       startAutoRoll(); // Restart with new interval
     } else {
-      console.log(`[autoroll] Auto-roll disabled (interval <= 0)`);
+      debugLog(`[autoroll] Auto-roll disabled (interval <= 0)`);
       stopAutoRoll();
     }
   });
 }
 
 // ---------- Initial paint ----------
-setNumber(secureIntBetween(0, 99)); // start randomized
+if (window.rng?.requestRoll) {
+  renderDigits(0);
+  roll("initial");
+} else {
+  setNumber(secureIntBetween(0, 99));
+}
 autosize();
 startAutoRoll(); // Start auto-roll immediately
 
-console.log(`[DEBUG] window.rng available:`, !!window.rng);
-console.log(`[DEBUG] window.rng.onTableSize available:`, !!window.rng?.onTableSize);
+debugLog(`[DEBUG] window.rng available:`, !!window.rng);
+debugLog(`[DEBUG] window.rng.onTableSize available:`, !!window.rng?.onTableSize);

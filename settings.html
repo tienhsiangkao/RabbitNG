@@ -30,6 +30,12 @@
       text-transform: uppercase;
       color: #8ab4ff;
     }
+    h2 {
+      margin: 0 0 12px;
+      font-size: 15px;
+      letter-spacing: 0.03em;
+      color: #c8d8ff;
+    }
     .section {
       margin-bottom: 18px;
       padding-bottom: 14px;
@@ -69,7 +75,7 @@
       height: 18px;
       accent-color: #7aa2ff;
     }
-    input[type="number"], input[type="range"] {
+    input[type="number"], input[type="range"], input[type="text"], select {
       width: 100%;
       box-sizing: border-box;
       border-radius: 6px;
@@ -78,6 +84,13 @@
       color: inherit;
       padding: 6px 8px;
       font-size: 14px;
+    }
+    select {
+      appearance: auto;
+    }
+    option {
+      background: #1b2030;
+      color: #f5f6fa;
     }
     input[type="range"] {
       padding: 0;
@@ -108,6 +121,63 @@
     .btn:hover {
       background: #92b7ff;
     }
+    .btn.secondary {
+      background: rgba(255,255,255,0.10);
+      color: #f5f6fa;
+    }
+    .btn.secondary:hover {
+      background: rgba(255,255,255,0.16);
+    }
+    .btn.danger {
+      background: rgba(255,102,102,0.18);
+      color: #ffb6b6;
+    }
+    .btn:disabled {
+      cursor: not-allowed;
+      opacity: 0.45;
+    }
+    .field {
+      margin: 11px 0;
+    }
+    .field > label {
+      display: block;
+      margin-bottom: 6px;
+      font-size: 13px;
+      opacity: 0.82;
+    }
+    .field-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+    }
+    .inline-actions {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+    .inline-actions input {
+      flex: 1;
+    }
+    .inline-actions .btn {
+      flex: 0 0 auto;
+      padding: 7px 11px;
+    }
+    .layout-controls[aria-disabled="true"] {
+      opacity: 0.5;
+      pointer-events: none;
+    }
+    .hint {
+      margin-top: 8px;
+      font-size: 12px;
+      line-height: 1.45;
+      color: rgba(225,231,245,0.68);
+    }
+    .appearance-preview {height:155px;position:relative;background:#143f32;border:8px solid #c4b5fd;border-radius:14px;margin:12px 0;overflow:hidden;box-sizing:border-box;}
+    .preview-hand {position:absolute;left:43%;top:49%;display:flex;gap:3px;font:600 19px 'Segoe UI';}
+    .preview-hand span {background:#f2f3f7;color:#1a2131;border-radius:4px;width:28px;height:44px;padding:4px;transform:rotate(-4deg);}
+    .preview-hand span+span {transform:rotate(5deg);color:#b33;}
+    .preview-rng {position:absolute;top:76%;transform:translateY(-50%);padding:5px 9px;border-radius:5px;background:#101712e0;color:#b3ee8f;font:600 23px 'Segoe UI';}
+    .preset-actions {display:flex;flex-wrap:wrap;gap:7px;margin:10px 0;}
   </style>
 </head>
 <body>
@@ -145,17 +215,17 @@
       <div class="row">
         <label>
           <div class="text">
-            <div class="title">Show stakes overlay</div>
-            <div class="subtitle">Display stakes badge on each table</div>
+            <div class="title">Show buy-in</div>
+            <div class="subtitle">Display the buy-in badge on poker tables</div>
           </div>
-          <input type="checkbox" id="stakesOverlay" />
+          <input type="checkbox" id="buyInOverlay" />
         </label>
       </div>
       <div class="row">
         <label>
           <div class="text">
-            <div class="title">Show clock overlay</div>
-            <div class="subtitle">Display local/UTC clock on each table</div>
+            <div class="title">Show time / clock</div>
+            <div class="subtitle">Display the table clock overlay</div>
           </div>
           <input type="checkbox" id="clockOverlay" />
         </label>
@@ -163,10 +233,10 @@
       <div class="row">
         <label>
           <div class="text">
-            <div class="title">Turn recognition</div>
-            <div class="subtitle">Use color samples to gate auto-roll</div>
+            <div class="title">Stake color frame</div>
+            <div class="subtitle">Outline each table with its stake-level color</div>
           </div>
-          <input type="checkbox" id="turnRecognition" />
+          <input type="checkbox" id="stakeFrame" />
         </label>
       </div>
     </div>
@@ -182,10 +252,139 @@
     <div class="section">
       <div class="range-label">
         <span>Auto-roll interval</span>
-        <span id="autoRollLabel">Turn-based</span>
+        <span id="autoRollLabel">3s</span>
       </div>
-      <input type="range" id="autoRollRange" min="0" max="60" step="1" />
-      <div class="subtitle range-row">0 disables interval mode (turn-based only)</div>
+      <input type="range" id="autoRollRange" min="1" max="60" step="1" />
+      <div class="subtitle range-row">Refresh every 1–60 seconds. Click a number to refresh manually. No screenshots or turn recognition.</div>
+    </div>
+
+    <div class="section">
+      <h2>Appearance</h2>
+      <div class="subtitle">Changes apply live. Spacing and size scale with each table.</div>
+      <div class="appearance-preview" id="appearancePreview" aria-label="Appearance preview"><div class="preview-hand"><span>A♠</span><span>K♥</span></div><div class="preview-rng" id="previewRng">42</div></div>
+      <div class="field"><label for="frameThickness">Border thickness <output id="frameThicknessValue"></output></label><input id="frameThickness" type="range" min="1" max="6" step="0.5"></div>
+      <div class="field"><label for="frameOpacity">Border opacity <output id="frameOpacityValue"></output></label><input id="frameOpacity" type="range" min="20" max="100" step="5"></div>
+      <div class="field"><label for="rngScale">RNG size <output id="rngScaleValue"></output></label><input id="rngScale" type="range" min="60" max="160" step="5"></div>
+      <div class="field"><label for="rngGap">Gap beside hand <output id="rngGapValue"></output></label><input id="rngGap" type="range" min="0.5" max="5" step="0.1"></div>
+      <div class="preset-actions"><button class="btn secondary" id="loadFour">Use 4-table look</button><button class="btn secondary" id="saveFour">Save 4-table look</button><button class="btn secondary" id="loadSix">Use 6-table look</button><button class="btn secondary" id="saveSix">Save 6-table look</button><button class="btn secondary" id="resetAppearance">Reset appearance</button></div>
+      <div class="subtitle" id="appearanceStatus" role="status">Presets change appearance only.</div>
+    </div>
+
+    <div class="section">
+      <h2>Clock &amp; breaks</h2>
+      <div class="field"><label for="clockMode">Clock placement</label><select id="clockMode"><option value="table">One clock per table</option><option value="shared">One shared clock + session timer</option></select></div>
+      <div class="row"><label><div class="text"><div class="title">Poker workspace</div><div class="subtitle">Keep the clock, GG challenge tracker, notes and replayer beside the tables. Opening tools never moves the tables.</div></div><input type="checkbox" id="workspaceEnabled"></label></div>
+      <div class="subtitle" id="workspaceStatus" role="status"></div>
+      <div class="subtitle">Workspace tools and the shared clock snap back to their assigned regions after dragging. Turn off Poker workspace for free placement. Use Playing / Paused when sitting out; session time also pauses when no tables are visible.</div>
+      <div class="preset-actions"><button class="btn secondary" id="sessionPlaying">Start playing</button><span class="subtitle" id="sessionState" role="status">Paused</span></div>
+      <div class="subtitle">Start minimizes unrelated windows once. Pause restores those windows; windows you reopen yourself stay as you left them.</div>
+      <div class="row"><label><span class="title">Quiet break reminder</span><input id="breakEnabled" type="checkbox"></label></div>
+      <div class="field"><label for="breakMinutes">Remind after active session time (minutes)</label><input id="breakMinutes" type="number" min="15" max="180" step="5"></div>
+      <div class="preset-actions"><button class="btn secondary" id="snoozeBreak">Snooze 10 min</button><button class="btn secondary" id="completeBreak">Start 10 min break</button></div>
+      <div class="subtitle">A quiet cue after counted playing time. Start a 10-minute countdown when ready; Resume starts the next work interval. Available in either clock mode. GG sit-out and play remain under your control.</div>
+    </div>
+
+    <style>#sessionFocusEditor textarea{width:100%;min-height:52px;resize:vertical;color:inherit;background:#111c2a;border:1px solid #40536a;border-radius:6px;padding:8px;font:14px/20px "Segoe UI",sans-serif}</style>
+    <div class="section">
+      <h2>Session focus</h2>
+      <div class="row"><label><span class="text"><span class="title">Show practice drills</span><span class="subtitle">Situation, adjustment and conditions. Edit modules in the Session Focus panel; edit full reminders here.</span></span><input id="sessionFocusEnabled" type="checkbox"></label></div>
+      <div id="sessionFocusEditor">
+        <div class="field"><label for="sessionFocus1">1</label><textarea id="sessionFocus1" rows="2" placeholder="Spot → habit → adjustment"></textarea></div>
+        <div class="field"><label for="sessionFocus2">2</label><textarea id="sessionFocus2" rows="2" placeholder="Spot → habit → adjustment"></textarea></div>
+        <div class="field"><label for="sessionFocus3">3</label><textarea id="sessionFocus3" rows="2" placeholder="Spot → habit → adjustment"></textarea></div>
+        <div class="field"><label for="sessionFocus4">4</label><textarea id="sessionFocus4" rows="2" placeholder="Spot → habit → adjustment"></textarea></div>
+        <div class="field"><label for="sessionFocus5">5</label><textarea id="sessionFocus5" rows="2" placeholder="Spot → habit → adjustment"></textarea></div>
+      </div>
+      <div class="preset-actions"><button class="btn secondary" id="saveSessionFocus">Save prompts</button><span class="subtitle" id="sessionFocusSaveState" role="status"></span></div>
+    </div>
+    <div class="section">
+      <h2>Table layouts</h2>
+      <div class="subtitle">Higher stakes fill the left column first, then move right. Equal stakes keep their order.</div>
+      <div class="row">
+        <label>
+          <div class="text">
+            <div class="title">Enable table layout</div>
+            <div class="subtitle">Arrange detected tables on the selected monitor</div>
+          </div>
+          <input type="checkbox" id="layoutEnabled" />
+        </label>
+      </div>
+      <div class="row">
+        <label>
+          <div class="text">
+            <div class="title">Auto-arrange</div>
+            <div class="subtitle">Start automatically. Table-count changes settle before rearranging.</div>
+          </div>
+          <input type="checkbox" id="layoutAutoArrange" />
+        </label>
+      </div>
+      <div class="row">
+        <label>
+          <div class="text">
+            <div class="title">Keep layout locked</div>
+            <div class="subtitle">After arranging, return moved or resized tables to their assigned slots</div>
+          </div>
+          <input type="checkbox" id="layoutLock" />
+        </label>
+      </div>
+
+      <div class="row">
+        <label>
+          <div class="text">
+            <div class="title">Arrange on startup</div>
+            <div class="subtitle">Also arrange at launch when Auto-arrange is off</div>
+          </div>
+          <input type="checkbox" id="layoutStartup" />
+        </label>
+      </div>
+      <div class="row">
+        <label>
+          <div class="text">
+            <div class="title">Restore positions when stopping</div>
+            <div class="subtitle">Restore pre-arrangement positions when disabling layouts or quitting</div>
+          </div>
+          <input type="checkbox" id="layoutRestore" />
+        </label>
+      </div>
+      <div class="layout-controls" id="layoutControls" aria-disabled="true">
+        <div class="field">
+          <label for="layoutProfile">Saved profile</label>
+          <select id="layoutProfile"></select>
+        </div>
+        <div class="field">
+          <label for="layoutProfileName">Profile name</label>
+          <input type="text" id="layoutProfileName" maxlength="40" />
+        </div>
+        <div class="field inline-actions">
+          <input type="text" id="newProfileName" maxlength="40" placeholder="New profile name" />
+          <button class="btn secondary" id="addProfileBtn" type="button">Add</button>
+          <button class="btn danger" id="deleteProfileBtn" type="button">Delete</button>
+        </div>
+        <div class="field">
+          <label for="layoutMonitor">Target monitor</label>
+          <select id="layoutMonitor"></select>
+        </div>
+        <div class="field-grid">
+          <div class="field">
+            <label for="layoutRows">Rows (0 = auto)</label>
+            <input type="number" id="layoutRows" min="0" max="12" step="1" />
+          </div>
+          <div class="field">
+            <label for="layoutColumns">Columns (0 = auto)</label>
+            <input type="number" id="layoutColumns" min="0" max="12" step="1" />
+          </div>
+          <div class="field">
+            <label for="layoutGap">Gap (px)</label>
+            <input type="number" id="layoutGap" min="0" max="96" step="1" />
+          </div>
+          <div class="field">
+            <label for="layoutMargin">Outer margin (px)</label>
+            <input type="number" id="layoutMargin" min="0" max="160" step="1" />
+          </div>
+        </div>
+        <button class="btn" id="applyLayoutBtn" type="button">Arrange tables now</button>
+        <div class="hint">Auto-arrange is on by default. Higher stakes fill the left column first. The Automatic profile adapts its grid to the number of tables. Arrange tables now applies a different saved profile or grid.</div>
+      </div>
     </div>
 
     <div class="actions">

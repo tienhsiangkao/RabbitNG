@@ -1,51 +1,76 @@
 {
+  "comfortDefaultsVersion": 2,
+  "comfort": { "clockMode": "shared", "breakEnabled": true, "breakMinutes": 50 },
   "scanMs": 300,
+  "followActiveOnly": false,
+  "opacity": 0.6,
+  "clickThrough": false,
   "strictBeginsOnly": true,
-  "autoRollMs": 0,
-  "turnRecognition": {
-    "enabled": false,
-    "strategy": "color-sample",
-    "minMatches": 1,
-    "samples": [
-      {
-        "name": "action-button",
-        "xPct": 0.5,
-        "yPct": 0.9,
-        "color": "#fca400",
-        "tolerance": 40
-      }
-    ],
-    "cacheMs": 150,
-    "triggerOnVisibilityChange": false,
-    "logOnSkip": true
-  },
+  "autoRollMs": 3000,
   "colorTierRules": {
     "enabled": true,
     "tiers": {
-      "red": { "maxBigBlind": 0.25 },
-      "gold": { "maxBigBlind": 5 },
-      "platinum": { "maxBigBlind": 10 },
-      "diamond": { "maxBigBlind": 20 }
+      "red": {
+        "maxBigBlind": 0.25
+      },
+      "gold": {
+        "maxBigBlind": 5
+      },
+      "platinum": {
+        "maxBigBlind": 10
+      },
+      "diamond": {
+        "maxBigBlind": 20
+      }
     }
   },
   "overlays": {
-    "basePctSmall": 0.08,
+    "sizeMode": "proportional",
+    "fixedW": 64,
+    "fixedH": 48,
+    "maxW": 360,
+    "maxH": 270,
+    "maxTablePctW": 0.22,
+    "maxTablePctH": 0.18,
+    "basePctSmall": 0.075,
     "basePctLarge": 0.12,
-    "minW": 64,
-    "minH": 48,
-    "rememberDefaultOnDrag": true,
-    "stakesEnabled": true,
-    "clockEnabled": true,
+    "minW": 40,
+    "minH": 30,
     "anchor": {
-      "xPct": 0.37,
-      "yPct": 0.85
+      "xPct": 0.343,
+      "yPct": 0.72
     },
     "position": {
-      "mode": "anchor",
+      "mode": "hero-hand",
       "edge": "top-right",
       "padX": 24,
       "padY": 24
-    }
+    },
+    "rememberDefaultOnDrag": true,
+    "buyInEnabled": true,
+    "clockEnabled": true,
+    "stakeFrameEnabled": true,
+    "scalingVersion": 5
+  },
+  "tableLayout": {
+    "enabled": true,
+    "autoArrange": true,
+    "lockLayout": false,
+    "activeProfileId": "default",
+    "hotkey": "Ctrl+Alt+T",
+    "profiles": [
+      {
+        "id": "default",
+        "name": "Automatic",
+        "monitorId": "primary",
+        "rows": 0,
+        "columns": 0,
+        "gap": 0,
+        "margin": 0
+      }
+    ],
+    "arrangeOnStartup": true,
+    "restoreOnStop": false
   },
   "excludeTitlePrefixes": [
     "HH",
@@ -67,11 +92,26 @@
     "Pictures",
     "Desktop",
     "Computer",
-    "Browser",
-    "http",
-    "https",
-    "Google Chrome",
-    "Chrome"
+    "Browser"
+  ],
+  "excludeTitleKeywords": [
+    "Chat",
+    "Hand History",
+    "History",
+    "Lobby",
+    "Tournament Lobby",
+    "Cashier",
+    "Settings",
+    "Options",
+    "Replay",
+    "Replayer",
+    "Observer",
+    "Notes",
+    "Support",
+    "Messages",
+    "Inbox",
+    "Leaderboard",
+    "Smart HUD"
   ],
   "matchers": [
     {
@@ -84,7 +124,12 @@
         "NLH",
         "PLO"
       ],
-      "titleKeywords": ["Rush", "Cash", "NLH", "PLO"],
+      "titleKeywords": [
+        "Rush",
+        "Cash",
+        "NLH",
+        "PLO"
+      ],
       "classIncludes": [
         "GGPoker",
         "GGNetwork"

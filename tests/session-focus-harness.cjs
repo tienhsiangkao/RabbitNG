@@ -1,0 +1,100 @@
+// Actual local renderer/preload/IPC and read-only native activation query on
+// this hidden owned panel only. No GG discovery, captures or desktop input.
+const fs=require('fs'),os=require('os'),path=require('path'),{pathToFileURL}=require('url');
+const {app,BrowserWindow,ipcMain}=require('electron');
+const root=path.resolve(process.argv[2]||path.join(__dirname,'..'));
+app.disableHardwareAcceleration();app.setName('Poker RNG session-focus check');
+const profile=fs.mkdtempSync(path.join(os.tmpdir(),'poker-focus-ui-'));app.setPath('userData',profile);
+app.whenReady().then(async()=>{
+ let panel;
+ try{
+  const {SessionFocusPanel}=await import(pathToFileURL(path.join(root,'src/session-focus-panel.js')).href);
+  const {normalizeSessionFocus,saveSessionFocusPatch}=await import(pathToFileURL(path.join(root,'src/session-focus.js')).href);
+  let settings={sessionFocus:normalizeSessionFocus(),comfort:{breakMinutes:50}},fail=false,failGet=true;
+  const file=path.join(profile,'settings.json');fs.writeFileSync(file,JSON.stringify(settings));
+  ipcMain.handle('session-focus:get',event=>{if(!panel.accepts(event.sender))throw Error('Unauthorized');if(failGet){failGet=false;throw Error('simulated initial read failure');}return settings.sessionFocus;});
+  ipcMain.handle('session-focus:update',(event,patch)=>{if(!panel.accepts(event.sender))throw Error('Unauthorized');if(fail===true||(fail==='hide'&&patch.enabled===false))throw Error('simulated disk failure');settings=saveSessionFocusPatch(settings,file,patch);panel.publish();return settings.sessionFocus;});
+  panel=new SessionFocusPanel({BrowserWindow,root,getState:()=>settings.sessionFocus,onHide(){}});
+  panel.context={show:false,rect:{x:0,y:0,width:324,height:400}};panel.create(panel.context.rect);const win=panel.window;
+  const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+  const until=async(fn,label)=>{const end=Date.now()+5000;while(Date.now()<end){if(await fn())return;await sleep(25);}throw Error(label);};
+  const js=code=>win.webContents.executeJavaScript(code).catch(error=>{console.error('Renderer check failed:',code);throw error;});
+  await until(()=>panel.ready,'Panel load');await until(()=>js('!document.getElementById("retry").hidden'),'Initial load failure shown');
+  await js('document.getElementById("retry").click()');await until(()=>js('!document.getElementById("edit").disabled'),'Panel data load retry');
+  await js('document.getElementById("library").click()');
+  await js('document.getElementById("edit").click()');
+  const prompts=['My first drill','My second drill','<img src=x onerror="window.focusInjected=true">','中文练习','Last focus'];
+  await js(`(()=>{const lines=${JSON.stringify(prompts)};document.querySelectorAll('textarea').forEach((el,i)=>{el.value=lines[i];el.dispatchEvent(new Event('input',{bubbles:true}));});})()`);
+  await until(()=>settings.sessionFocus.lines[4]==='Last focus','All five saves complete');
+  await js('document.getElementById("edit").click()');
+  await until(()=>js('document.querySelectorAll(".line").length===5'),'Read mode');
+  if(await js('document.querySelector("img")!==null||window.focusInjected===true'))throw Error('User text executed as HTML');
+  await js('document.querySelectorAll(".line")[1].click()');await until(()=>settings.sessionFocus.active===1,'Manual highlight');
+  await js('document.getElementById("edit").click()');fail=true;
+  await js('(()=>{const el=document.querySelector("textarea");el.value="unsaved draft";el.dispatchEvent(new Event("input",{bubbles:true}));})()');
+  await until(()=>js('!document.getElementById("retry").hidden'),'Save failure feedback');
+  if(settings.sessionFocus.lines[0]==='unsaved draft'||!(await js('document.querySelector("textarea").value==="unsaved draft"')))throw Error('Failed write committed or draft lost');
+  fail=false;await js('document.getElementById("retry").click()');await until(()=>settings.sessionFocus.lines[0]==='unsaved draft','Retry save');
+  settings=saveSessionFocusPatch(settings,file,{lineEdits:{1:'Changed in Settings'}});panel.publish();
+  await js('(()=>{const el=document.querySelectorAll("textarea")[2];el.value="Different panel row";el.dispatchEvent(new Event("input",{bubbles:true}));})()');
+  await until(()=>settings.sessionFocus.lines[2]==='Different panel row','Different row edit saved');
+  if(settings.sessionFocus.lines[1]!=='Changed in Settings')throw Error('Panel overwrote another editor row');
+  const fits=[];
+  for(const [width,height]of [[324,400],[280,340],[640,592]]){
+   win.setBounds({x:0,y:0,width,height});await sleep(50);
+   const metric=await js(`(()=>{const p=document.querySelector('.panel'),els=[...document.querySelectorAll('header,footer,.lines')];return {width:innerWidth,height:innerHeight,fits:p.scrollHeight<=p.clientHeight+1&&els.every(el=>{const r=el.getBoundingClientRect();return r.left>=0&&r.top>=0&&r.right<=innerWidth+1&&r.bottom<=innerHeight+1;})&&document.querySelector('.lines').scrollHeight>=document.querySelector('.lines').clientHeight};})()`);
+   if(!metric.fits)throw Error('Panel clips at '+width+'x'+height);fits.push(metric);
+   if(width===640&&!(await js('parseFloat(getComputedStyle(document.querySelector("textarea")).fontSize)>=18')))throw Error('Wide focus panel text did not grow');
+  }
+  await js('document.getElementById("hide").click()');await until(()=>settings.sessionFocus.enabled===false,'Hide persisted');
+  settings=saveSessionFocusPatch(settings,file,{lineEdits:{1:'New after hide'},enabled:true});panel.publish();
+  await sleep(50);await js('document.getElementById("edit").click()');
+  await until(()=>js('document.querySelectorAll("textarea").length===5'),'Reopened editor');
+  if(!(await js('document.querySelectorAll("textarea")[1].value==="New after hide"')))throw Error('Reopened editor contains stale hidden text');
+  fail='hide';await js('document.getElementById("hide").click()');await until(()=>js('!document.getElementById("retry").hidden'),'Hide save failure');
+  if(settings.sessionFocus.enabled===false)throw Error('Failed Hide committed');
+  fail=false;await js('document.getElementById("retry").click()');await until(()=>settings.sessionFocus.enabled===false,'Retry repeated the actual Hide operation');
+  const persisted=JSON.parse(fs.readFileSync(file));if(persisted.sessionFocus.lines[0]!=='unsaved draft'||persisted.sessionFocus.active!==1)throw Error('Persisted notes differ');
+  const {urgentDrills}=await import(pathToFileURL(path.join(root,'src/user-drill-presets.js')).href);
+  settings=saveSessionFocusPatch(settings,file,{drills:urgentDrills,enabled:true,active:5});panel.publish();
+  await until(()=>js('document.querySelectorAll(".line").length===7'),'Seven modular drills');
+  if(!(await js('document.querySelectorAll(".cue-title").length===7&&document.querySelector(".line.active .copy").textContent.length<=90&&!document.querySelector(".line.active .copy").textContent.includes("KJo/KTo")')))throw Error('Playing view is not concise');
+  await js('document.getElementById("edit").click()');await until(()=>js('document.querySelectorAll("textarea").length===7'),'Seven modular editors');
+  if(!(await js('document.querySelectorAll("textarea")[5].value.includes("KJo/KTo")')))throw Error('Full range details missing from editor');
+  await js('(()=>{const a=document.querySelector("input[data-field=action]");a.value="Raise less";a.dispatchEvent(new Event("input",{bubbles:true}));const d=document.querySelectorAll("textarea")[6];d.value="Long qualification "+"x".repeat(500);d.dispatchEvent(new Event("input",{bubbles:true}));})()');
+  await until(()=>settings.sessionFocus.drills[0].action==='Raise less'&&settings.sessionFocus.drills[6].detail.length>500,'Modular fields persisted without truncation');
+  const retained=settings.sessionFocus.drills[5].detail;
+  settings=saveSessionFocusPatch(settings,file,{drillEdits:{0:{position:'BB vs SB'}}});panel.publish();await sleep(40);
+  if(settings.sessionFocus.drills[0].action!=='Raise less'||settings.sessionFocus.drills[5].detail!==retained)throw Error('Modular merge lost a field or another drill');
+  win.setBounds({x:0,y:0,width:640,height:592});await sleep(40);
+  await js('document.querySelectorAll("textarea")[6].scrollIntoView({block:"center"})');await sleep(40);
+  if(!(await js('(()=>{const e=document.querySelectorAll("textarea")[6].getBoundingClientRect(),v=document.getElementById("lines").getBoundingClientRect();return e.top>=v.top-1&&e.bottom<=v.bottom+1;})()')))throw Error('Last drill is not reachable through panel scrolling');
+  await js('document.getElementById("edit").click();document.getElementById("library").click()');
+  await until(()=>js('document.querySelectorAll(".line").length===3'),'Three playing cards');
+  for(const [width,height]of [[280,340],[324,400],[640,592]]){
+   win.setBounds({x:0,y:0,width,height});await sleep(50);
+   if(!(await js('(()=>{const list=document.getElementById("lines"),cards=[...list.querySelectorAll(".line")];return list.classList.contains("playing")&&list.scrollHeight<=list.clientHeight+1&&cards.every(c=>c.clientHeight>=list.clientHeight/3-12)&&cards.every(c=>{const r=c.getBoundingClientRect(),content=c.querySelector(".drill-content").getBoundingClientRect();return content.top>=r.top&&content.bottom<=r.bottom;});})()')))throw Error('Three cards do not share available room at '+width+'x'+height);
+  }
+  await js('document.getElementById("library").click()');
+  await until(()=>js('document.querySelectorAll("button[data-pin]").length===7'),'Library selection controls');
+  if(!(await js('document.querySelectorAll("button[data-pin]")[3].disabled')))throw Error('Fourth selection not capped');
+  const selectionLocked=await js('(()=>{const pins=[...document.querySelectorAll("button[data-pin]")];pins[0].click();return pins.every(p=>p.disabled);})()');
+  if(!selectionLocked)throw Error('Rapid selection changes can race');
+  await until(()=>settings.sessionFocus.selected?.length===2,'Unpin persisted');
+  await until(()=>js('!document.querySelectorAll("button[data-pin]")[3].disabled'),'Selection controls unlock');
+  await js('document.querySelectorAll("button[data-pin]")[3].click()');await until(()=>settings.sessionFocus.selected?.includes(3),'Pin persisted');
+  settings=saveSessionFocusPatch(settings,file,{drillEdits:{3:{state:'parked',evidence:'personal'}}});panel.publish();
+  await until(()=>js('document.querySelectorAll("button[data-pin]")[3].disabled'),'Parked cannot pin');
+  if(settings.sessionFocus.selected.includes(3))throw Error('Parked drill remains selected');
+  if(!(await js('document.querySelectorAll(".evidence")[3].textContent==="Personal pattern"')))throw Error('Evidence label missing');
+  const koffi=require('koffi'),user=koffi.load('user32.dll');
+  const owner=user.func('uint32_t __stdcall GetWindowThreadProcessId(uintptr_t hwnd,_Out_ uint32_t *pid)');
+  const send=user.func('intptr_t __stdcall SendMessageTimeoutW(uintptr_t hwnd,uint32_t msg,uintptr_t wp,intptr_t lp,uint32_t flags,uint32_t timeout,_Out_ intptr_t *result)');
+  const handle=Number(win.getNativeWindowHandle().readBigUInt64LE()),pid=[0],activation=[0];
+  if(!owner(handle,pid)||pid[0]!==process.pid)throw Error('Refusing a foreign activation query');
+  if(!send(handle,0x21,handle,(0x201<<16)|1,3,100,activation)||![1,3].includes(activation[0]))throw Error('Owned panel discards native clicks');
+  if(win.isVisible())throw Error('Harness showed a desktop window');
+  console.log(JSON.stringify({status:'passed',fiveEdits:true,persistence:true,manualHighlight:true,errorKeepsDraft:true,htmlInert:true,fits,nativeMouseActivation:activation[0],hidden:true}));
+  panel.destroy();app.exit(0);
+ }catch(error){console.error(error.stack);try{panel?.destroy();}catch{}app.exit(1);}
+});

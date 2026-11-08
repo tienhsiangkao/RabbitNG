@@ -1,49 +1,90 @@
 {
   "name": "poker-rng-overlays",
-  "version": "1.0.0",
+  "version": "1.2.0",
   "description": "Per-table RNG overlays for poker (Windows)",
   "author": "You",
-  "main": "main.js",
+  "main": "bootstrap.js",
   "type": "module",
   "scripts": {
     "start": "set \"ELECTRON_RUN_AS_NODE=\" && electron .",
-    "dist": "electron-builder --win portable --publish=never",
-    "test": "node --test"
+    "test": "node --test && npm run test:renderer && npm run test:settings && npm run test:clock && npm run test:startup && npm run test:attachment && npm run test:automatic && npm run test:workspace",
+    "test:unit": "node --test",
+    "test:offline": "node --test",
+    "preview:workspace": "node tools/workspace-preview.mjs",
+    "test:renderer": "electron tests/renderer-harness.cjs",
+    "test:settings": "electron tests/settings-harness.cjs",
+    "test:clock": "electron tests/clock-harness.cjs",
+    "test:startup": "electron tests/main-startup-harness.cjs",
+    "test:attachment": "electron tests/main-startup-harness.cjs . --overlay-lifecycle",
+    "test:automatic": "electron tests/main-startup-harness.cjs . --automatic-layout",
+    "test:workspace": "electron tests/main-startup-harness.cjs . --workspace-layout",
+    "check:deps": "npm ls --depth=0",
+    "audit": "npm audit --omit=dev",
+    "dist": "electron-builder --win portable --publish=never"
   },
   "build": {
     "appId": "com.yourname.pokerrng",
     "productName": "Poker RNG",
     "directories": {
-      "output": "dist"
+      "output": "release-1.2.0"
     },
     "files": [
-      "**/*",
-      "!dist",
-      "!node_modules/.cache"
+      "main.js",
+      "bootstrap.js",
+      "renderer.js",
+      "preload.cjs",
+      "settings-preload.cjs",
+      "index.html",
+      "settings.html",
+      "settings.js",
+      "clock.html",
+      "settings.json",
+      "src/**/*",
+      "assets/**/*",
+      "node_modules/**/*",
+      "!node_modules/.cache/**/*",
+      "!node_modules/**/*.map",
+      "!node_modules/**/test/**/*",
+      "!node_modules/**/tests/**/*",
+      "!node_modules/**/__tests__/**/*",
+      "!node_modules/**/__snapshots__/**/*",
+      "!node_modules/**/*.test.*",
+      "!node_modules/**/*.spec.*",
+      "!node_modules/**/build/Release/**/*.iobj",
+      "!node_modules/**/build/Release/**/*.ipdb",
+      "!node_modules/**/build/Release/**/*.lib",
+      "!node_modules/**/build/Release/**/*.exp",
+      "!node_modules/**/build/Release/**/obj/**/*",
+      "!node_modules/**/build/**/*.tlog",
+      "!node_modules/**/build/**/*.vcxproj",
+      "!node_modules/**/build/**/*.vcxproj.*",
+      "!src/turn-*.js",
+      "!src/action-buttons.js"
     ],
     "extraResources": [
       "assets/**"
     ],
     "asar": true,
-
     "copyright": "Copyright © 2025 You",
-
     "win": {
-      "target": ["portable"],
-      "icon": "assets/icons/app.ico"
+      "target": [
+        "portable"
+      ],
+      "icon": "assets/icons/app.ico",
+      "requestedExecutionLevel": "asInvoker"
     },
-
     "portable": {
-      "artifactName": "PokerRNG-${version}-portable.exe"
+      "artifactName": "PokerRNG-${version}-Timer.exe",
+      "requestExecutionLevel": "user"
     }
   },
   "dependencies": {
-    "jimp": "^0.22.10",
-    "node-window-manager": "^2.2.4",
-    "screenshot-desktop": "^1.15.0"
+    "koffi": "^2.16.3",
+    "node-window-manager": "^2.2.4"
   },
   "devDependencies": {
-    "electron": "^36.0.0",
-    "electron-builder": "^24.13.3"
+    "electron": "^39.8.10",
+    "electron-builder": "^26.15.3",
+    "pngjs": "^7.0.0"
   }
 }

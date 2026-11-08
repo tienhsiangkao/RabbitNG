@@ -1,19 +1,25 @@
-// // Expose minimal IPC to the renderer
-// const { contextBridge, ipcRenderer } = require("electron");
-// contextBridge.exposeInMainWorld("rng", {
-//   onPromptSetUpper: (cb) => ipcRenderer.on("prompt-set-upper", cb),
-//   getUpper: () => ipcRenderer.invoke("get-upper"),
-//   setUpper: (v) => ipcRenderer.invoke("set-upper", v),
-// });
-// preload.cjs
-// Minimal, safe bridge: subscribe-only channels used by renderer.
-// - contextIsolation: true
-// Minimal, event-only bridge
 const { contextBridge, ipcRenderer } = require("electron");
 
 contextBridge.exposeInMainWorld("rng", {
-  onTableSize: (cb) => ipcRenderer.on("table-size", (_e, d) => cb?.(d)),
-  onRollNow:   (cb) => ipcRenderer.on("roll-now",   () => cb?.()),
-  onSetAutoRollInterval: (cb) => ipcRenderer.on("set-auto-roll-interval", (_e, d) => cb?.(d)),
+  onTableSize: (cb) => {
+    if (typeof cb !== "function") return undefined;
+    const handler = (_event, data) => cb(data);
+    ipcRenderer.on("table-size", handler);
+    return () => ipcRenderer.off("table-size", handler);
+  },
+  onRollNow: (cb) => {
+    if (typeof cb !== "function") return undefined;
+    const handler = (_event, value) => cb(value);
+    ipcRenderer.on("roll-now", handler);
+    return () => ipcRenderer.off("roll-now", handler);
+  },
+  onSetAutoRollInterval: (cb) => {
+    if (typeof cb !== "function") return undefined;
+    const handler = (_event, value) => cb(value);
+    ipcRenderer.on("set-auto-roll-interval", handler);
+    return () => ipcRenderer.off("set-auto-roll-interval", handler);
+  },
+  reportValue: (value, rollId) => ipcRenderer.send("rng-value", value, rollId),
+  requestRoll: (reason = "manual") => ipcRenderer.send("rng-clicked", reason),
   setInterval: (seconds) => ipcRenderer.send("set-auto-roll-interval", seconds)
 });

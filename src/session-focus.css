@@ -1,0 +1,46 @@
+*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden;background:transparent;color:#e8edf4;font-family:"Segoe UI",sans-serif}
+.panel{height:100%;padding:10px;background:#121b26f5;border:1px solid #344354;border-radius:10px;display:flex;flex-direction:column;gap:8px}
+header{height:30px;display:flex;align-items:center;gap:8px;flex:none}h1{font-size:16px;font-weight:600;margin:0;flex:1;letter-spacing:.1px}
+button{font:inherit;color:inherit;background:transparent;border:1px solid #40536a;border-radius:5px;cursor:pointer;padding:4px 9px;-webkit-app-region:no-drag}
+button:hover{background:#29394d}button:focus-visible,textarea:focus-visible{outline:2px solid #9ad6e1;outline-offset:1px}button:disabled{opacity:.45;cursor:default}
+#edit{font-size:12px}#hide{font-size:21px;line-height:18px;border:0;padding:3px 5px;color:#a6b3c4}
+.lines{min-height:0;flex:1;display:grid;grid-template-rows:repeat(5,minmax(0,1fr));gap:6px}.line{min-height:0;border:1px solid #28384a;border-radius:6px;background:#172331;display:grid;grid-template-columns:21px 1fr;gap:5px;align-items:center;padding:4px 6px;text-align:left;width:100%}
+.line.active{border-color:#c4b178;background:#2d2b23}.number{color:#9eacbd;font-size:12px;font-variant-numeric:tabular-nums}.active .number{color:#eed796}
+.copy{font-size:15px;line-height:18px;overflow:hidden;overflow-wrap:anywhere;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical}.copy.empty{color:#8291a6;font-size:13px}
+textarea{width:100%;height:100%;min-height:0;resize:none;outline:none;border:1px solid #40536a;border-radius:6px;background:#111c2a;color:#eef3fa;padding:6px;font:15px/18px "Segoe UI",sans-serif}
+footer{height:18px;display:flex;align-items:center;justify-content:space-between;font-size:11px;color:#9eacbd;flex:none}#retry{font-size:11px;padding:1px 4px}footer.error{color:#ffb8aa}
+@media(max-width:290px){.panel{padding:8px;gap:6px}.copy,textarea{font-size:14px;line-height:17px}.line{padding:3px 5px}.lines{gap:5px}h1{font-size:15px}}
+.panel{container-type:size}
+@container(min-width:400px){
+ h1{font-size:20px}header{height:36px}.line{grid-template-columns:28px 1fr;padding:6px 10px;gap:8px}
+ .copy,textarea{font-size:clamp(17px,3.5cqw,21px);line-height:1.25}.copy.empty{font-size:17px}
+ .number{font-size:16px}#edit{font-size:14px}footer{font-size:13px;height:20px}
+}
+.lines{display:flex;flex-direction:column;overflow-y:auto;overflow-x:hidden;scrollbar-width:thin;scrollbar-color:#50647c transparent;padding-right:3px}
+.line{flex:none;min-height:72px}.drill-content{display:flex;flex-direction:column;gap:6px;min-width:0}.tags{display:flex;flex-wrap:wrap;gap:4px}.tag{font:12px/1.35 "Segoe UI",sans-serif;border:1px solid #40536a;border-radius:4px;padding:2px 5px;color:#b6c9df;background:#223143}.tag.action{color:#efe0b1;border-color:#78653b;background:#373022}
+.copy{white-space:pre-line}.line.active .copy{-webkit-line-clamp:unset;display:block}.line.active{padding-top:10px;padding-bottom:10px}
+.drill-editor{flex:none;border:1px solid #34475f;border-radius:7px;padding:10px;background:#172331;display:flex;flex-direction:column;gap:8px}.drill-editor strong{font-size:14px}.module-fields{display:grid;grid-template-columns:1fr 1fr;gap:7px}.drill-editor label{font:12px/1.4 "Segoe UI",sans-serif;color:#b6c9df;display:flex;flex-direction:column;gap:3px;min-width:0}.drill-editor input{width:100%;min-width:0;padding:5px;border:1px solid #40536a;border-radius:5px;background:#111c2a;color:#eef3fa;font:14px "Segoe UI",sans-serif}.drill-editor textarea{min-height:90px;height:100px;flex:none;font:15px/20px "Segoe UI",sans-serif}
+@container(min-width:400px){.tag{font-size:14px}.line{min-height:96px}.drill-editor label{font-size:14px}.drill-editor input{font-size:16px}.drill-editor textarea{font-size:18px;line-height:24px;height:120px}}
+/* Playing view is a compact cue list; full conditions remain in Edit. */
+.drill-content{gap:2px}.cue-context{font:11px/1.2 "Segoe UI",sans-serif;color:#9dacc0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.cue-title{font:600 16px/1.25 "Segoe UI",sans-serif;color:#e8edf4}.line.active .cue-title{color:#eed796}
+.line,.line.active{min-height:60px;padding:5px 7px}.copy,.line.active .copy{font:13px/1.3 "Segoe UI",sans-serif;white-space:normal;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;color:#b7c4d5}.copy.empty{font-size:12px}
+@container(min-width:400px){.cue-context{font-size:12px}.cue-title{font-size:19px}.copy,.line.active .copy{font-size:14px;line-height:1.25}.line,.line.active{min-height:62px;padding:5px 9px}}
+#review-guide{font:12px/1.35 "Segoe UI",sans-serif;color:#a8b9cc;padding:4px 0}#review-guide[hidden]{display:none}.evidence{font:11px/1.2 "Segoe UI",sans-serif;color:#9daec0}.library-row{display:flex;gap:6px;align-items:center;flex:none}.library-row .line{flex:1;min-width:0}.library-row>button{font-size:12px;padding:5px}.library-row.parked{opacity:.6}.drill-editor select{width:100%;min-width:0;padding:5px;border:1px solid #40536a;border-radius:5px;background:#111c2a;color:#eef3fa;font:14px "Segoe UI",sans-serif}.empty-session{font:15px/1.5 "Segoe UI",sans-serif;color:#b7c4d5}#library{font-size:12px}
+/* Session cards use spare panel space; Library keeps its compact scrolling list. */
+.lines.playing{gap:8px;padding-right:0}
+.playing .line,.playing .line.active{flex:1;min-height:76px;padding:6px 8px;border-radius:8px;grid-template-columns:18px minmax(0,1fr);gap:6px}
+.playing .evidence{display:none}
+.playing .drill-content{gap:3px}
+.playing .cue-title{font-size:14px;line-height:1.25;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.playing .copy,.playing .line.active .copy{font-size:12px;line-height:1.3}
+.playing .number{font-size:12px;align-self:start;padding-top:2px}
+.playing .line.active{border-left:3px solid #c4b178;padding-left:6px}
+@container(min-width:400px){
+ .lines.playing{gap:10px}
+ .playing .line,.playing .line.active{padding:12px 14px;grid-template-columns:24px minmax(0,1fr);gap:10px}
+ .playing .line.active{padding-left:12px}
+ .playing .drill-content{gap:6px}
+ .playing .cue-title{font-size:clamp(18px,3.6cqw,23px)}
+ .playing .copy,.playing .line.active .copy{font-size:clamp(14px,2.7cqw,17px);line-height:1.35}
+ .playing .number{font-size:15px}
+}

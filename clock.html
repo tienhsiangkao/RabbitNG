@@ -19,6 +19,7 @@
       -webkit-user-select: none;
       user-select: none;
       font-family: 'Digital7', 'Digital-7', monospace;
+      font-size: min(17.8vw, 48vh);
       display: flex;
       flex-direction: column;
       align-items: center;
@@ -26,6 +27,7 @@
       -webkit-app-region: drag;
     }
     .clock-container {
+      width: 100%;
       padding: 0;
       display: flex;
       flex-direction: column;
@@ -58,14 +60,74 @@
       text-shadow: 0 0 4px rgba(0, 0, 0, 0.8), 0 0 8px rgba(0, 0, 0, 0.6);
       min-width: 8ch;
     }
+    #session-status,#break-status {font:12px/1.5 'Segoe UI',sans-serif;text-align:center;color:#ced6e2;-webkit-app-region:no-drag;}
+    #session-status[hidden],#break-status[hidden] {display:none;}
+    body.shared {font-size:36px;background:#151c26ed;border:1px solid #ffffff24;border-radius:12px;padding:6px;}
+    body.shared .clock-container {gap:0;}
+    body.shared .clock,body.shared .clock-utc {-webkit-app-region:drag;}
+    body.break-notice:not(.shared) {font-size:min(17.8vw,calc(48vh - 14.4px));}
+    #break-status {color:#efd68f;}
+    #break-status button {font:11px 'Segoe UI',sans-serif;border:1px solid #ffffff30;border-radius:4px;background:#ffffff0e;color:inherit;padding:2px 6px;margin:2px;cursor:pointer;-webkit-app-region:no-drag;}
+    body:not(.shared) #break-status button {display:none;}
+    #play-controls {display:none;justify-content:center;padding:2px 0;-webkit-app-region:no-drag;}
+    body.shared #play-controls {display:flex;}
+    #toggle-playing {font:600 12px/16px 'Segoe UI',sans-serif;background:#d2e7d5;color:#14201a;border:0;border-radius:5px;padding:3px 14px;cursor:pointer;-webkit-app-region:no-drag;}
+    #toggle-playing.playing {background:#ffffff18;color:#eef2f7;}
+    #toggle-playing:disabled {opacity:.55;cursor:default;}
+    #play-controls{gap:6px}#restore-layout{font:12px/16px "Segoe UI",sans-serif;background:#ffffff0e;color:#cfdae7;border:1px solid #ffffff30;border-radius:5px;padding:2px 8px;cursor:pointer;-webkit-app-region:no-drag}#restore-layout:disabled{opacity:.5;cursor:default}
+    #focus-status {font:11px/16px 'Segoe UI',sans-serif;color:#efd68f;white-space:nowrap;max-width:100%;overflow:hidden;text-overflow:ellipsis;text-align:center;-webkit-app-region:no-drag;}
+    #focus-status[hidden] {display:none;}
+    body.workspace {font-size:52px;}
+    body.workspace .clock-container {display:grid;grid-template-columns:minmax(0,1fr);grid-template-rows:52px 36px 22px 26px 16px 26px;height:178px;}
+    body.workspace .clock {line-height:1;}
+    body.workspace .clock-utc {font-size:36px;line-height:1;}
+    body.workspace #session-status {font-size:15px;line-height:22px;}
+    body.workspace #toggle-playing {font-size:14px;line-height:18px;padding-top:2px;padding-bottom:2px;}
+    body.workspace #focus-status {line-height:16px;}
+    body.workspace #break-status {display:flex;align-items:center;justify-content:center;gap:4px;line-height:18px;}
+    body.workspace #break-status button {font-size:12px;line-height:18px;margin:0;}
+    body.workspace #break-status[hidden],body.workspace #focus-status[hidden] {display:block;visibility:hidden;}
   </style>
 </head>
 <body oncontextmenu="return false">
   <div class="clock-container">
-    <div class="clock" id="clock-local">00:00:00</div>
-    <div class="clock-utc" id="clock-pst">00:00:00</div>
+    <div class="clock" id="clock-local" aria-label="Local time">00:00:00</div>
+    <div class="clock-utc" id="clock-pst" aria-label="Pacific time">00:00:00</div>
+    <div id="session-status" hidden></div>
+    <div id="play-controls"><button id="toggle-playing" type="button">Start playing</button><button id="restore-layout" type="button">Restore layout</button></div>
+    <div id="focus-status" hidden></div>
+  <div id="break-status" hidden><span id="break-message">Time for a break</span><button id="clock-snooze">+10 min</button><button id="clock-break">Start 10 min break</button></div>
   </div>
   <script>
+    const shared=new URLSearchParams(location.search).get('shared')==='1';
+    document.body.classList.toggle('shared',shared);
+    document.body.classList.toggle('workspace',new URLSearchParams(location.search).get('workspace')==='1');
+    if(shared)document.title='Poker Session Clock';
+    function showStatus(status={}) {
+      const session=document.getElementById('session-status');
+      session.hidden=!shared;session.textContent=`Session ${status.session||'00:00:00'} · ${status.breakActive?'Break':status.breakReady?'Ready':status.paused?'Paused':'Playing'}`;
+      const play=document.getElementById('toggle-playing');
+      play.disabled=status.controlsEnabled===false;
+      play.textContent=play.disabled?'Layout test':status.playing?'Pause':status.breakActive||status.breakReady||status.seconds>0?'Resume playing':'Start playing';
+      play.classList.toggle('playing',status.playing===true);play.setAttribute('aria-pressed',String(status.playing===true));
+      play.onclick=play.disabled?null:()=>window.clockComfort?.action(status.playing?'pause-playing':'start-playing');
+      const restore=document.getElementById('restore-layout');restore.disabled=status.controlsEnabled===false||status.layoutEnabled!==true;
+      restore.onclick=restore.disabled?null:()=>window.clockComfort?.action('restore-layout');
+      const focus=document.getElementById('focus-status');focus.hidden=!shared||!status.focusError;focus.textContent=status.focusError||'';focus.title=status.focusError||'';
+      const due=status.breakDue===true;
+      document.body.classList.toggle('break-due',due);
+      document.body.classList.toggle('break-notice',due||status.breakActive===true||status.breakReady===true);
+      const remaining=Math.max(0,Math.floor(status.breakRemainingSeconds||0));
+      document.getElementById('break-message').textContent=status.breakActive?`Break ${String(Math.floor(remaining/60)).padStart(2,'0')}:${String(remaining%60).padStart(2,'0')}`:status.breakReady?(shared?'Break finished — resume when ready':'Ready to resume'):'Time for a break';
+      document.getElementById('break-status').hidden=!(due||status.breakActive||status.breakReady);
+      document.getElementById('clock-snooze').hidden=!due;
+      document.getElementById('clock-break').hidden=!due;
+      document.getElementById('clock-break').disabled=status.controlsEnabled===false;
+    }
+    window.clockComfort?.onStatus(showStatus);
+    window.clockComfort?.get().then(showStatus).catch(()=>{});
+    document.getElementById('clock-snooze').onclick=()=>window.clockComfort?.action('snooze');
+    document.getElementById('clock-break').onclick=()=>window.clockComfort?.action('start-break');
     const pacificFormatter = new Intl.DateTimeFormat('en-US', {
       timeZone: 'America/Los_Angeles',
       hour: '2-digit',
